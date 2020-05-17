@@ -3,6 +3,7 @@ import { getRepository, Repository, In } from 'typeorm';
 import IProductsRepository from '@modules/products/repositories/IProductsRepository';
 import ICreateProductDTO from '@modules/products/dtos/ICreateProductDTO';
 import IUpdateProductsQuantityDTO from '@modules/products/dtos/IUpdateProductsQuantityDTO';
+import AppError from '@shared/errors/AppError';
 import Product from '../entities/Product';
 
 interface IFindProducts {
@@ -16,42 +17,71 @@ class ProductsRepository implements IProductsRepository {
     this.ormRepository = getRepository(Product);
   }
 
-  public async create(productData: ICreateProductDTO): Promise<Product> {
-    const product = this.ormRepository.create(productData);
+  public async create({
+    name,
+    price,
+    quantity,
+  }: ICreateProductDTO): Promise<Product> {
+    const product = this.ormRepository.create({
+      name,
+      price,
+      quantity,
+    });
+
     await this.ormRepository.save(product);
+
     return product;
   }
 
   public async findByName(name: string): Promise<Product | undefined> {
-    const product = await this.ormRepository.findOne({ where: { name } });
-    return product;
+    const findProduct = await this.ormRepository.findOne({
+      where: {
+        name,
+      },
+    });
+
+    return findProduct;
   }
 
   public async findAllById(products: IFindProducts[]): Promise<Product[]> {
-    const findProducts = await this.ormRepository.find({
-      where: { products },
-    });
+    const idList = products.map(product => product.id);
 
-    return findProducts;
+    const orderList = await this.ormRepository.find({ id: In(idList) });
+
+    if (idList.length !== orderList.length) {
+      throw new AppError('Missing product');
+    }
+
+    return orderList;
   }
 
   public async updateQuantity(
     products: IUpdateProductsQuantityDTO[],
   ): Promise<Product[]> {
-    const { id } = { id: In(products) };
-    const newQuantity = { quantity: In(products) };
+    const productsData = await this.findAllById(products);
+    const newProducts = productsData.map(productData => {
+      const productFind = products.find(
+        product => product.id === productData.id,
+      );
 
-    await this.ormRepository
-      .createQueryBuilder()
-      .update('products')
-      .set({ quantity: () => `quantity - ${newQuantity}` })
-      .where(id)
-      .returning('quantity');
+      if (!productFind) {
+        throw new AppError('Product not find');
+      }
 
-    const product = await this.ormRepository.find({ where: { id } });
-    await this.ormRepository.save(product);
+      const newProduct = productData;
 
-    return product;
+      if (newProduct.quantity < productFind.quantity) {
+        throw new AppError('Insufficient product quantity');
+      }
+
+      newProduct.quantity -= productFind.quantity;
+
+      return newProduct;
+    });
+
+    await this.ormRepository.save(newProducts);
+
+    return newProducts;
   }
 }
 

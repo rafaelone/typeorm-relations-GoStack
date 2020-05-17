@@ -20,16 +20,18 @@ export default class AddOrderProducts1589660227473
             default: 'uuid_generate_v4()',
           },
           {
-            name: 'product_id',
-            type: 'uuid',
-          },
-          {
             name: 'order_id',
             type: 'uuid',
           },
           {
+            name: 'product_id',
+            type: 'uuid',
+          },
+          {
             name: 'price',
-            type: 'integer',
+            type: 'numeric',
+            precision: 10,
+            scale: 2,
           },
           {
             name: 'quantity',
