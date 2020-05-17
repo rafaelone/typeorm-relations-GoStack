@@ -33,7 +33,7 @@ export default class AddProducts1589659763104 implements MigrationInterface {
             default: 'now()',
           },
           {
-            name: 'updated',
+            name: 'updated_at',
             type: 'timestamp',
             default: 'now()',
           },

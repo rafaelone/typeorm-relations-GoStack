@@ -27,7 +27,7 @@ export default class AddCustomers1589658761652 implements MigrationInterface {
             default: 'now()',
           },
           {
-            name: 'updated',
+            name: 'updated_at',
             type: 'timestamp',
             default: 'now()',
           },
